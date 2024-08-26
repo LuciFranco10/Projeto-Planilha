@@ -3,13 +3,22 @@ from   selenium  import webdriver
 from   selenium.webdriver.common.by import By
 from   selenium.webdriver.chrome.service import Service
 from   webdriver_manager.chrome import ChromeDriverManager
+from   selenium.webdriver.support.ui import WebDriverWait
+from   selenium.webdriver.support import expected_conditions as EC
 from   selenium.webdriver.common.keys import Keys
 import time
 
 
 caminho_planilha = '/home/luciane/projetos/luciane.dev/planilha/projeto_planilha.xlsx'
 
-df = pd.read_excel(caminho_planilha)
+try:
+    df = pd.read_excel(caminho_planilha)
+    print("Planilha carregada com sucesso!")
+    print("Conteúdo da planilha:")
+    print(df.head())  
+except Exception as e:
+    print(f"Erro ao ler a planilha: {e}")
+    exit()
 
 Service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=Service)
@@ -23,26 +32,41 @@ for index, row in df.iterrows():
 
     try:
 
+        print(f"Tentando preencher o formulário para o índice {index}")
+        
+        nome = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'input[aria-label="Nome"]'))
+        )
 
-        nome = driver.find_element(By.NAME, 'nome')
-        telefone = driver.find_element(By.NAME,'telefone')
-        email = driver.find_element(By.NAME, 'email')
+
+        print("Campo Nome encontrado")
+        nome.send_keys(row['Nome'])
+        telefone = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="Telefone"]'))
+        )
+        email = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-label="Email"]'))
+        )
+         
 
         nome.send_keys(row['Nome'])
         telefone.send_keys(row['Telefone'])
         email.send_keys(row['Email'])
+
+        nome_value = nome.get_attribute('value')
+        print(f"Valor do campo nome preenchido para o índice {index}: {nome_value}")
 
 
         submit_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, '//span[text()="Enviar"]'))
         
         )
-        
         submit_button.click()
 
         time.sleep(2)
     except Exception as e:
          print(f"Erro ao preencher o formulário para o índice {index}: {e}")
+         driver.save_screenshot(f"erro_indice_{index}.png")
 
 
 driver.quit()
